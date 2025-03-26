@@ -14,7 +14,6 @@
 *.tps
 *.sublime-workspace
 *.local.tcp
-*.pdf
 *.synctex.gz
 *.bcf
 *.run.xml
