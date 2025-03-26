@@ -1,3 +1,11 @@
+# Forked from [original repo](https://gitlab.com/skibcsit/thesis-template/)
+
+# Бета версия РСПЗ - thesis-template-2-rspz.pdf 
+
+
+
+--------------------------------------------
+
 # Шаблон отчетов НИР и УИР #
 
 ## Ссылки на результаты сборки ##
