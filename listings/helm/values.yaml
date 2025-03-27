@@ -1,0 +1,65 @@
+server:
+  replicaCount: 1
+  image:
+    repository: "robocatt/flask-server-istio"
+    tag: "latest" 
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 5001
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: server
+            operator: In
+            values:
+              - "true"
+  env:
+    jaegerEndpoint: "jaeger-otlp-service:4317"
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+proxy:
+  replicaCount: 1
+  image:
+    repository: "robocatt/flask-client-istio"
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8001
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: worker
+            operator: In
+            values:
+              - "true"
+  env:
+    jaegerEndpoint: "jaeger-otlp-service:4317"
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+jaeger:
+  name: jaeger
+  image:
+    repository: jaegertracing/jaeger
+    tag: latest
+    pullPolicy: IfNotPresent
+  uiService:
+    name: jaeger-ui
+    type: NodePort
+    port: 16686
+    targetPort: 16686
+    nodePort: 31687
+  httpService:
+    name: jaeger-http
+    type: ClusterIP    
+    port: 4318
+    targetPort: 4318
+
+
