@@ -1,0 +1,22 @@
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: {{ .Release.Name }}-flask-server-cb
+  labels:
+    app: flask-server-istio
+spec:
+  host: {{ .Release.Name }}-flask-server-istio
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 1 # Limits Envoy to open a single connection to the upstream service, ensuring that requests are sent one at a time.
+      http:
+        http1MaxPendingRequests: 0 # Disallow queuing of concurrent requests
+        maxRequestsPerConnection: 1 # Each connection only handles one request
+    outlierDetection:
+      consecutiveGatewayErrors: 3
+      consecutive5xxErrors: 3
+      interval: 10s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 100
+      

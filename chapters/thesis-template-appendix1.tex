@@ -1,95 +1,114 @@
-﻿\chapter{Основные правила форматирования}\label{app-format}
+﻿
+
+\chapter{Приложение A. Листинг программной реализации}\label{app-format}
 %\addcontentsline{toc}{chapter}{}
 
-Текст пояснительной записки должен готовиться для печати на листах формата А4, использоваться должен шрифт с засечками (Roman; обычно --- Times Roman или Times New Roman), 12 или 14 кегль. Размеры полей:
+% Istio
+Реализация микросервисной архитектуры с Istio.
+\lstinputlisting[
+    caption = {Python код основного сервера},
+    label   = {lst:server-istio.py}    
+]{listings/server-istio.py}
 
-\begin{itemize}
-	\item верхнее: 20 мм.
-	\item нижнее: 20 мм.
-	\item левое: 10 мм.
-	\item правое: 25 мм.
-\end{itemize}
+\lstinputlisting[
+    caption = {Python код прокси сервера},
+    label   = {lst:client-istio.py}     
+]{listings/client-istio.py}
 
-Нумероваться должны все страницы, начиная с первой (титульной), однако сами номера следует проставлять на страницах, начиная со страницы реферата. Номер следует проставлять внизу страницу (в центре).
+\lstinputlisting[language=dockerfile,        
+                 caption={Полный Dockerfile сборки сервера},
+                 label={lst:docker-server-istio}]
+                {listings/Dockerfile-istio.txt}
+\lstinputlisting[language=dockerfile,        
+                 caption={Полный Dockerfile сборки прокси сервера},
+                 label={lst:docker-client-istio}]
+                {listings/Dockerfile-client-istio.txt}
+\lstinputlisting[
+    caption = {Описание Helm chart},
+    label   = {lst:chart-istio}    
+]{listings/helm-istio/Chart.yaml}
+\lstinputlisting[
+    caption = {Описание переменных в helm},
+    label   = {lst:values-istio}    
+]{listings/helm-istio/values.yaml}
 
-Заголовки оформляются тем же шрифтом, что и основной текст (т.е., соответственно, Times Roman или Times New Roman). Для заголовков первого уровня размер шрифта может быть больше размера шрифта основного текста (обычно 14-16).
+\lstinputlisting[
+    caption = {Описание сервиса серверов},
+    label   = {lst:service-server-client-istio}    
+]{listings/helm-istio/templates/service-server-client.yaml}
+\lstinputlisting[
+    caption = {Описание сервиса Jaeger},
+    label   = {lst:service-jaeger}    
+]{listings/helm-istio/templates/service-jaeger.yaml}
+\lstinputlisting[
+    caption = {Описание пространства имен},
+    label   = {lst:namespace-istio}    
+]{listings/helm-istio/templates/namespace.yaml}
+\lstinputlisting[
+    caption = {Описание FluentBit DaemonSet},
+    label   = {lst:fluentbit-daemonset-istio}    
+]{listings/helm-istio/templates/fluentbit-daemonset.yaml}
+\lstinputlisting[
+    caption = {Описание FluentBit конфига},
+    label   = {lst:fluentbit-configmap-istio}    
+]{listings/helm-istio/templates/fluentbit-configmap.yaml}
+\lstinputlisting[
+    caption = {Описание Circuit Breaker в Istio},
+    label   = {lst:destination-rule-istio}    
+]{listings/helm-istio/templates/destination-rule.yaml}
+\lstinputlisting[
+    caption = {Описание deployment серверов},
+    label   = {lst:deployment-server-client-istio}    
+]{listings/helm-istio/templates/deployment-server-client.yaml}
+\lstinputlisting[
+    caption = {Описание deployment Jaeger},
+    label   = {lst:deployment-jaeger-istio}    
+]{listings/helm-istio/templates/deployment-jaeger.yaml}
 
-Все разделы текста: реферат, оглавление, введение, три главы основного
-содержания, список литературы, заключение, приложения --- должны снабжаться
-содержательным заголовком и начинаться с новой страницы; сами заголовки следует
-при этом центрировать (заголовки параграфов и пунктов выравниваются по ширине).
-Следует обратить внимание, что заголовки всех разделов, кроме трех основных
-глав, регламентированы; заголовки трех основных глав должны быть содержательными
-и отражать суть соответствующей главы. Названия типа <<Аналитическая часть>> и <<Теоретическая глава>> --- \textit{недопустимы}.
 
-Текст пояснительной записки может содержать рисунки и таблицы. Все рисунки и
-таблицы должны снабжаться номерами и подписями:
+\lstinputlisting[
+    caption = {Python код экспортера OTLP trace в stdout},
+    label   = {lst:otlp_json_conole_exporter}    
+]{listings/otlp_json_conole_exporter.py}
 
-\begin{itemize}
+% NO istio
+Реализация микросервисной архитектуры без Istio во многом похожа. Приведены лишь отличающиеся файлы. 
 
-	\item нумерация рисунков и таблиц должна быть сквозная (но раздельная, т.к. для рисунков своя, для таблиц --- своя);
+\lstinputlisting[
+    caption = {Python код основного сервера},
+    label   = {lst:server-NOistio.py}    
+]{listings/server-NOistio.py}
 
-	\item в случае большого количества иллюстраций/таблиц, допускается <<вложенная>> нумерация (т.е. таблицу/рисунок можно снабжать составным номером в формате 
-	
-	$$\langle\mbox{номер главы}\rangle.\langle\mbox{номер внутри главы}\rangle;$$
-	
-	\item подрисуночная подпись должна располагаться снизу по центру;
-	
-	\item название таблицы следует помещать над таблицей слева, без абзацного
-	отступа в одну строку с ее номером через тире (ГОСТ 7.32-2001, п.6.6.1).
+\lstinputlisting[
+    caption = {Python код прокси сервера},
+    label   = {lst:client-NOistio.py}     
+]{listings/client-NOistio.py}
 
-\end{itemize}
+\lstinputlisting[
+    caption = {Python код Сircuit Breaker библиотеки},
+    label   = {lst:circuit-breaker-lib-core.py}     
+]{listings/cb-lib-core.py}
 
-Здесь перечислены не все, а лишь основные требования к оформлению. Прочие
-требования --- см. соответствующие ГОСТы.
+\lstinputlisting[
+    caption = {Python код инициализации Сircuit Breaker библиотеки},
+    label   = {lst:circuit-breaker-lib-init.py}     
+]{listings/cb-lib-init.py}
 
-Для того чтобы избежать больших отступов в списках, которые по умолчанию добавляют окружения \texttt{itemize} и \texttt{enumerate}, следует использовать 
-\texttt{compactitem} (для маркированных списков) и \texttt{compactenum} (для нумерованных списков) из пакета \texttt{paralist}. 
-Например:
+\lstinputlisting[
+    caption = {Конфигурация k6 для нагрузочного тестирования},
+    label   = {lst:load-load.yaml}     
+]{listings/load-load.yaml}
 
-\begin{compactitem}
-	\item это;
-	\item не нумерованный;
-	\item список;
-	\item без лишних промежутков.
-\end{compactitem}
+\lstinputlisting[
+    caption = {Конфигурация k6 для тестирования payload},
+    label   = {lst:load-size.yaml}     
+]{listings/load-size.yaml}
 
-И для нумерованных списков:
+\lstinputlisting[
+    caption = {Общий скрипт настройки k6},
+    label   = {lst:load-job.yaml}     
+]{listings/load-job.yaml}
 
-\begin{compactenum}[1)]
-	\item нумерованные списки;
-	\item пакета \texttt{paralist};
-	\item еще и удобно настраивать;
-	\item (например, менять формат номера).
-\end{compactenum}
-
-\noindent или
-
-% \begin{compactenum}[a)]
-% 	\item это другой;
-% 	\item нумерованный;
-% 	\item список;
-% 	\item без лишних промежутков;
-% 	\item и с буквенной нумерацией.
-% \end{compactenum}
-
-% А если хочется нумерацию сделать ангоязычной, то нужно использовать окружение \texttt{other\-language} (таким образом: \verb|\begin{otherlanguage}[numerals=latin]{russian}|)
-
-% \setkeys{russian}{numerals=latin}
-% %\selectlanguage{russian}
-% %\begin{otherlanguage}[numerals=latin]{russian}
-% \begin{russian}
-% \begin{compactenum}[a)]
-% 	\item это другой;
-% 	\item нумерованный;
-% 	\item список;
-% 	\item без лишних промежутков;
-% 	\item и с буквенной нумерацией.
-% \end{compactenum}
-% \end{russian}
-% %\end{otherlanguage}
-
-\textbf{Замечание.} По неизвестным причинам, переключения не происходит, хотя должно.
 
 %%% Local Variables:
 %%% TeX-engine: xetex

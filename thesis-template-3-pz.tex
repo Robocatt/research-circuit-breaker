@@ -11,7 +11,10 @@
 \begin{document}
 
 % Для титульного листа, сверстанного в LaTeX
-\input{title/title-3-pz}
+% \input{title/title-3-pz}
+% \newpage
+
+\includepdf[pages={-}, offset=0mm -0mm]{title/intro-new-NEW.pdf}
 \newpage
 
 % Для вставки бланка титульного листа из PDF-файла
@@ -23,11 +26,14 @@
 %\clearpage
 
 % Для листа задания, сверстанного в LaTeX
-\input{title/task}
-\newpage
+% \input{title/task}
+% \newpage
 
 % Для вставки бланка задания из PDF-файла
 % \includepdf[pages={-}, offset=0mm -0mm]{title/task.pdf}
+
+\includepdf[pages={-}, offset=0mm -0mm]{title/title-with-signatures-v2.pdf}
+\newpage
 
 \input{chapters/_content}
 

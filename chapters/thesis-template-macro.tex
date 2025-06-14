@@ -1,13 +1,11 @@
 \usepackage{tabularx}
 
-\usepackage{polyglossia}
-\setmainlanguage[numerals=cyrillic]{russian}
-\setotherlanguages{english}
+
 \usepackage{csquotes}
 
 \usepackage{xunicode} % some extra unicode support
 %\usepackage[utf8x]{inputenc}
-\usepackage{xltxtra} % \XeLaTeX macro
+\usepackage{xltxtra} % \XeLaTeX macro. marked as OBSOLETE
 \usepackage{fontspec}
 \defaultfontfeatures{Ligatures=TeX}
 
@@ -19,15 +17,26 @@
 \usepackage{ifplatform}
 
 \ifwindows
-  \newfontfamily{\cyrillicfont}{Times New Roman}
+  % Define main fonts first
   \setmainfont{Times New Roman}
-  \newfontfamily{\cyrillicfonttt}{Courier New}
+  \setsansfont{Arial}
   \setmonofont{Courier New}
+  % Define Cyrillic-specific fonts for polyglossia
+  \newfontfamily{\cyrillicfont}{Times New Roman}
+  \newfontfamily{\cyrillicfontsf}{Arial}
+  \newfontfamily{\cyrillicfonttt}{Courier New}
 \else
   \setmainfont{Linux Libertine O}
   \setsansfont{Linux Biolinum O}
   \setmonofont[SmallCapsFont={Latin Modern Mono Caps}]{Latin Modern Mono Light}
+  \newfontfamily{\cyrillicfont}{Linux Libertine O}
+  \newfontfamily{\cyrillicfontsf}{Linux Biolinum O}
 \fi
+
+% set polyglossia AFTER fonts is crucial 
+\usepackage{polyglossia}
+\setmainlanguage[numerals=cyrillic]{russian}
+\setotherlanguages{english}
 
 %нумерация справа и колонтитулы справа вверху
 \usepackage{fancyhdr}
@@ -125,7 +134,9 @@
   style=gost-numeric,
   sorting=none,
   language=auto,
-  autolang=other
+  autolang=other,
+  maxnames=3,
+  minnames=1
 ]{biblatex}
 \addbibresource{chapters/biblio.bib}
 
@@ -209,9 +220,31 @@
 \newcommand{\projectsubtasknum}{\stepcounter{projectsubtasknumber}\theprojecttasknumber.\theprojectsubtasknumber.}
 
 \usepackage{listings}
+\lstdefinelanguage{dockerfile}{
+  sensitive=true,
+  keywords={
+    FROM, RUN, CMD, LABEL, MAINTAINER, EXPOSE, ENV,
+    ADD, COPY, ENTRYPOINT, VOLUME, USER, WORKDIR,
+    ARG, ONBUILD, STOPSIGNAL, HEALTHCHECK, SHELL
+  },
+  keywordstyle=\color{blue}\bfseries,
+  comment=[l]{\#},          % shell-style comments
+  morestring=[b]",
+}
+
+\makeatletter
+  \def\lst@ext{}            % <- empty means: never append ".tex"
+\makeatother
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  numbers=left,
+  numberstyle=\tiny,
+  breaklines=true,
+}
 
 \renewcommand{\lstlistingname}{Листинг}
-
+\usepackage{placeins}
 \lstset{
   basicstyle=\linespread{0.94}\ttfamily\small,
   tabsize=2,
