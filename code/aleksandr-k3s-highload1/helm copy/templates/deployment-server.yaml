@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-flask-server
+  labels:
+    app: flask-server
+spec:
+  replicas: {{ .Values.server.replicaCount }}
+  selector:
+    matchLabels:
+      app: flask-server
+  template:
+    metadata:
+      labels:
+        app: flask-server
+    spec:
+      containers:
+      - name: flask-server
+        image: "{{ .Values.server.image.repository }}:{{ .Values.server.image.tag }}"
+        imagePullPolicy: {{ .Values.server.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.server.service.port }}
+        env:
+        - name: OTLP_COLLECTOR_ENDPOINT
+          value: {{ quote .Values.server.env.otlpCollectorEndpoint }}
+        resources:
+{{ toYaml .Values.server.resources | indent 10 }}
+      nodeSelector:
+{{ toYaml .Values.server.nodeSelector | indent 8 }}
+      tolerations:
+{{ toYaml .Values.server.tolerations | indent 8 }}
+      affinity:
+{{ toYaml .Values.server.affinity | indent 8 }}

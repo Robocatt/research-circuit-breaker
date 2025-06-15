@@ -1,0 +1,56 @@
+server:
+  replicaCount: 1
+  
+  image:
+    repository: "robocatt/flask-server"
+    tag: "v1.0.7"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 5001
+
+
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: server
+            operator: In
+            values:
+              - "true"
+
+  env:
+    otlpCollectorEndpoint: "jaeger:4317"
+
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+
+client:
+  replicaCount: 1
+
+  image:
+    repository: "robocatt/flask-client"
+    tag: "v1.0.6"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 8001
+
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: worker
+            operator: In
+            values:
+              - "true"
+  env:
+    otlpCollectorEndpoint: "jaeger:4317"
+  resources: {}
+  nodeSelector: {}
+  tolerations: []

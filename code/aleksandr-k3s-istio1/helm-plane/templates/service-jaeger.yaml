@@ -1,0 +1,25 @@
+{{- $jaegerServices := dict "ui" .Values.jaeger.uiService "internal" .Values.jaeger.internalService "http" .Values.jaeger.httpService }}
+{{- range $key, $svc := $jaegerServices }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $svc.name }}-service
+  labels:
+    app: jaeger
+spec:
+  type: {{ $svc.type }}
+  ports:
+  - name: {{ $key }}
+    port: {{ $svc.port }}
+    targetPort: {{ $svc.targetPort }}
+    {{- if eq $key "ui" }}
+    nodePort: {{ $svc.nodePort }}
+    {{- end }}
+  selector:
+    app: jaeger
+{{- end }}
+
+
+
+

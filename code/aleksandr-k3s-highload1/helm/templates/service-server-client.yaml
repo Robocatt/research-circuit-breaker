@@ -1,0 +1,22 @@
+{{- /* services.yaml – non-Istio variant */ -}}
+{{- $rel := .Release.Name -}}
+{{- $services := dict "server" .Values.server "client" .Values.client }}
+
+{{- range $k, $v := $services }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $rel }}-flask-{{ $k }}
+  labels:
+    app: flask-{{ $k }}
+spec:
+  type: {{ $v.service.type }}
+  ports:
+    - name: http
+      port: {{ $v.service.port }}
+      targetPort: {{ $v.service.port }}
+      protocol: TCP
+  selector:
+    app: flask-{{ $k }}
+{{- end }}

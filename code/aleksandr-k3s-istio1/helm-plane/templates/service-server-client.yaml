@@ -1,0 +1,21 @@
+{{- $releaseName := .Release.Name -}}
+{{- $services := dict "server" .Values.server "client" .Values.client }}
+
+{{- range $key, $val := $services }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $releaseName }}-flask-{{ $key }}
+  labels:
+    app: flask-{{ $key }}
+spec:
+  type: {{ $val.service.type }}
+  ports:
+  - name: http
+    port: {{ $val.service.port }}
+    targetPort: {{ $val.service.port }}
+    protocol: TCP
+  selector:
+    app: flask-{{ $key }}
+{{- end }}

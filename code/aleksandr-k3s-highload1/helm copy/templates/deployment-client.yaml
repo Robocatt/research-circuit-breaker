@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-flask-client
+  labels:
+    app: flask-client
+spec:
+  replicas: {{ .Values.client.replicaCount }}
+  selector:
+    matchLabels:
+      app: flask-client
+  template:
+    metadata:
+      labels:
+        app: flask-client
+    spec:
+      containers:
+      - name: flask-client
+        image: "{{ .Values.client.image.repository }}:{{ .Values.client.image.tag }}"
+        imagePullPolicy: {{ .Values.client.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.client.service.port }}
+        env:
+        - name: OTLP_COLLECTOR_ENDPOINT
+          value: {{ quote .Values.client.env.otlpCollectorEndpoint }}
+        # Pass the server service name to the client so it knows where to forward requests.
+        - name: SERVER_SERVICE
+          value: "{{ .Release.Name }}-flask-server"
+        resources:
+{{ toYaml .Values.client.resources | indent 10 }}
+      nodeSelector:
+{{ toYaml .Values.client.nodeSelector | indent 8 }}
+      tolerations:
+{{ toYaml .Values.client.tolerations | indent 8 }}
+      affinity:
+{{ toYaml .Values.client.affinity | indent 8 }}
+

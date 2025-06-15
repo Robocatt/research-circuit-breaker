@@ -1,0 +1,108 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluent-bit-config
+  namespace: logging
+data:
+
+  fluent-bit.conf: |-
+    [SERVICE]
+        Flush           1
+        Log_Level       info
+        Parsers_File    parsers.conf
+
+    #---------------------------------------------------------------
+    # 1) INPUT — tail only flask-server Istio side-car logs
+    #---------------------------------------------------------------
+    [INPUT]
+        Name                tail
+        Tag                 otlp.span
+        Path                /var/log/containers/*_default_flask-*.log
+        Parser              cri
+        DB                  /fluent-bit/pos/flask-server.db
+        Read_from_Head      True
+        Mem_Buf_Limit       600MB
+        Rotate_Wait         30       
+        Buffer_Max_Size     600M 
+        Buffer_Chunk_Size   600M
+        Skip_Long_Lines     On
+
+    #---------------------------------------------------------------
+    # 2) FILTER — keep stdout lines whose JSON starts with “{”
+    #---------------------------------------------------------------
+    [FILTER]
+        Name          record_modifier
+        Match         otlp.span
+        Allowlist_key log
+
+    #  FILTER — move JSON into `body` + build headers
+    [FILTER]
+        Name    lua
+        Match   otlp.span
+        Script  j2h.lua
+        Call    add_body_and_headers
+
+
+    # OUTPUT — POST one span per request to Jaeger OTLP/HTTP
+    [OUTPUT]
+        Name            http
+        Match           otlp.span
+        Host            jaeger-http-service.default.svc.cluster.local
+        Port            4318
+        URI             /v1/traces
+        Body_key        $body
+        Headers_key     $headers
+        Log_Response_Payload  True
+        allow_duplicated_headers  False
+        workers         2
+
+    #---------------------------------------------------------------
+    # 4-b) OUTPUT — copy the same record to stdout for debugging
+    #---------------------------------------------------------------
+    [OUTPUT]
+        Name     stdout
+        Match    otlp.span
+
+    [OUTPUT]
+        Name      file           
+        Match     otlp.span      
+        Path      /fluent-bit/out
+        File      spans.log      
+        Format    plain          
+        Mkdir     true           
+        workers   2
+
+    
+        
+  parsers.conf: |-
+    [PARSER]
+        Name        cri
+        Format      regex
+        Regex       ^(?<time>[^ ]+) (?<stream>stdout|stderr) (?<logtag>[^ ]*) (?<log>.*)$
+        Time_Key    time
+        Time_Format %Y-%m-%dT%H:%M:%S.%L%z
+        Time_Keep   On
+
+  j2h.lua: |-
+    function add_body_and_headers(tag, ts, record)
+        local msg = record["log"]
+        if msg == nil then
+            return 0, ts, record
+        end
+
+        -- If the first character is “{”, treat as JSON span. Otherwise drop.
+        if string.sub(msg, 1, 1) == "{" then
+            -- Copy the raw JSON into “body”
+            record["body"] = msg
+
+            -- Build the headers map
+            record["headers"] = { ["Content-Type"] = "application/json" }
+
+            -- Remove “log” so that only “body” + “headers” remain
+            record["log"] = nil
+            return 1, ts, record
+        end
+
+        -- Otherwise, not JSON → drop
+        return 0, ts, record
+    end

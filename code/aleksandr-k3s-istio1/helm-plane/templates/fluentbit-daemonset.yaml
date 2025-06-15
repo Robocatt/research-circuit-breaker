@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluent-bit
+  namespace: logging
+  labels:
+    app: fluent-bit
+spec:
+  selector:
+    matchLabels:
+      app: fluent-bit
+  template:
+    metadata:
+      labels:
+        app: fluent-bit
+    spec:
+      # nodeSelector:
+      #   server: "true"               # keep the restriction you had
+      serviceAccountName: default
+      volumes:
+        - name: config-volume
+          configMap:
+            name: fluent-bit-config
+        - name: varlog                 # host logs
+          hostPath:
+            path: /var/log
+        - name: pos                    # offset DB
+          emptyDir: {}
+        - name: fluentbit-output           
+          hostPath:
+            path: /var/log/fluentbit    
+            type: DirectoryOrCreate
+      containers:
+        - name: fluent-bit
+          image: fluent/fluent-bit:latest
+          args: ["-c", "/fluent-bit/etc/fluent-bit.conf"]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 1000Mi
+            limits:
+              cpu: 200m
+              memory: 1000Mi
+          volumeMounts:
+            - name: config-volume
+              mountPath: /fluent-bit/etc
+            - name: varlog
+              mountPath: /var/log
+              readOnly: true
+            - name: pos
+              mountPath: /fluent-bit/pos
+            - name: fluentbit-output          
+              mountPath: /fluent-bit/out      

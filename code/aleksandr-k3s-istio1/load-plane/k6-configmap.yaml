@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: k6-script
+data:
+  loadtest.js: |
+
+    import http from 'k6/http';
+    import { check, sleep } from 'k6';
+    import { Trend } from 'k6/metrics';
+
+    
+    const PAYLOAD_KB = 1000;        // 1, 25, 100 500 1000
+    
+
+    export const options = {
+      stages: [
+        { duration: '0.5m', target: 5 }, // ramp-up
+        { duration: '2m', target: 5 }, // steady
+        { duration: '0.5m', target: 0  }, // ramp-down
+      ],
+      tags: { payload: `${PAYLOAD_KB}kb` }, // propagates to results
+      thresholds: {
+        http_req_failed: ['rate<0.05'],
+        http_req_duration: ['p(95)<5000'],
+      },
+    };
+
+    
+    function makeBody(kb) {
+      const padding = 'X'.repeat(kb * 1024 - 20); // 20 bytes of JSON overhead
+      return JSON.stringify({ message: padding });
+    }
+
+    
+    const latencyMs = new Trend('latency_ms');
+
+    const URL = 'http://release2-flask-client.default.svc.cluster.local:8001/echo';
+    const PARAMS = { headers: { 'Content-Type': 'application/json' }, timeout: '5s' };
+
+    export default function () {
+      const body = makeBody(PAYLOAD_KB);
+
+      const start = Date.now();
+      const res   = http.post(URL, body, PARAMS);
+      latencyMs.add(Date.now() - start);
+
+      check(res, { 'status 200': (r) => r.status === 200 });
+      sleep(Math.random() * 0.5);
+    }

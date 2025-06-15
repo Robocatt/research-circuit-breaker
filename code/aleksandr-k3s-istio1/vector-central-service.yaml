@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: vector-central-service
+  labels:
+    app: vector-central
+spec:
+  type: ClusterIP
+  selector:
+    app: vector-central
+  ports:
+    - name: vector
+      port: 9001
+      targetPort: 9001
+      protocol: TCP

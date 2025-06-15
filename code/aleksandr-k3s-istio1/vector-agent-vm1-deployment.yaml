@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vector-agent
+  labels:
+    app: vector-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vector-agent
+  template:
+    metadata:
+      labels:
+        app: vector-agent
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: server
+                operator: In
+                values:
+                  - "true"
+      containers:
+      - name: vector-agent
+        image: timberio/vector:nightly-alpine
+        args: ["--config", "/etc/vector/vector.toml"]
+        volumeMounts:
+        - name: config
+          mountPath: /etc/vector
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: vector-agent-config
+          items:
+            - key: "vector.toml"
+              path: "vector.toml"
+      

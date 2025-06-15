@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.jaeger.name }}-deployment
+  labels:
+    app: jaeger
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jaeger
+  template:
+    metadata:
+      labels:
+        app: jaeger
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: load
+                    operator: In
+                    values:
+                      - "true"
+      containers:
+      - name: jaeger
+        image: "{{ .Values.jaeger.image.repository }}:{{ .Values.jaeger.image.tag }}"
+        imagePullPolicy: {{ .Values.jaeger.image.pullPolicy }}
+        volumeMounts:
+          - name: config-volume
+            mountPath: /jaeger/etc
+        args:
+          - --config=/jaeger/etc/jaeger-conf.yaml
+        # args : 
+          # - --collector.otlp.enabled=true
+          # - --collector.otlp.grpc.host-port=:4317 # grpc var
+          # - --collector.http-server.host-port=:4318 # old http?
+          # - --collector.otlp.http.host-port=:4318
+          # https://www.jaegertracing.io/docs/1.67/cli/#jaeger-collector
+          
+        # env:
+        #   - name: SPAN_STORAGE_TYPE
+        #     value: "memory"
+        #   - name: SAMPLING_TYPE
+        #     value: "const"
+        #   - name: SAMPLING_PARAM
+        #     value: "1"
+        ports:
+        - name: ui
+          containerPort: {{ .Values.jaeger.uiService.targetPort }}
+        - name: otlp
+          containerPort: {{ .Values.jaeger.internalService.targetPort }}
+        - name: http
+          containerPort: {{ .Values.jaeger.httpService.targetPort }}
+      volumes:
+      - name: config-volume
+        configMap:
+          name: jaeger-config

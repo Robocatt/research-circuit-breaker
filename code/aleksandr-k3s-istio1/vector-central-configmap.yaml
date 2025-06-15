@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vector-central-config
+data:
+  vector.toml: |-
+    [api]
+    enabled = false
+
+    [sources.incoming_vector]
+    type = "vector"
+    address = "0.0.0.0:9001"
+
+    [sinks.to_jaeger]
+    inputs = ["incoming_vector"]
+    type = "opentelemetry"
+    
+
+    [sinks.to_jaeger.protocol]
+    type = "http"
+    uri = "http://jaeger-otlp-service.monitoring.svc.cluster.local:4317"
+    method = "post"
+
+    [sinks.to_jaeger.protocol.encoding]
+    codec = "json"
+
+    [sinks.to_jaeger.protocol.framing]
+    method = "newline_delimited"

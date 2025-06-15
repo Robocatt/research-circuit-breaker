@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-json-configmap-n
+  namespace: logging
+data:
+  test-span.json: |
+    {"resourceSpans": [{"resource": {"attributes": [{"key": "service.name","value": {"stringValue": "curl-probe"}}]},"scopeSpans": [{"scope": {"name": "xyzz"},"spans": [{"traceId": "11692b1fe85982cdd8995ea3d9c95df2","spanId": "32191d03f18be065","parentSpanId": "","name": "manual-test-span-TMP","kind": 5,"startTimeUnixNano": "1749097132268000","endTimeUnixNano": "1749097132268050","attributes": [{"key": "example.attribute","value": {"stringValue": "NEWVALUE!"}}],"status": {"code": 1},"droppedAttributesCount": 0,"events": [],"droppedEventsCount": 0,"links": [],"droppedLinksCount": 0}]}]}]}

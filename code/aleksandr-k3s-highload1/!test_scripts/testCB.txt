@@ -1,0 +1,163 @@
+import http from 'k6/http';
+    import { check, sleep } from 'k6';
+    import { Counter, Rate, Trend } from 'k6/metrics';
+
+    // Custom metrics to track circuit breaker behavior
+    const circuitBreakerErrors = new Counter('circuit_breaker_errors');
+    const serverErrors = new Counter('server_errors');
+    const successRate = new Rate('success_rate');
+    const responseTime = new Trend('response_time');
+
+    export let options = {
+      scenarios: {
+        // First scenario: Normal operation to establish baseline
+        normal_operation: {
+          executor: 'constant-vus',
+          vus: 1,
+          duration: '30s',
+          startTime: '0s',
+          tags: { scenario: 'normal' },
+        },
+        
+        // Second scenario: Force server failures to trigger circuit breaker
+        trigger_failures: {
+          executor: 'constant-vus',
+          vus: 2,
+          duration: '45s',
+          startTime: '30s',
+          tags: { scenario: 'failure_test' },
+        },
+        
+        // Third scenario: Test circuit breaker open state
+        test_circuit_open: {
+          executor: 'constant-vus',
+          vus: 3,
+          duration: '60s',
+          startTime: '75s',
+          tags: { scenario: 'circuit_open' },
+        },
+        
+        // Fourth scenario: Test recovery
+        test_recovery: {
+          executor: 'constant-vus',
+          vus: 1,
+          duration: '45s',
+          startTime: '135s',
+          tags: { scenario: 'recovery' },
+        },
+      },
+      
+      thresholds: {
+        'http_req_failed': ['rate<0.8'], // Allow high failure rate for circuit breaker testing
+        'http_req_duration': ['p(95)<5000'], // 5s to account for circuit breaker timeouts
+        'success_rate': ['rate>0.2'], // At least 20% success rate (very lenient for CB testing)
+        'circuit_breaker_errors': ['count>0'], // We WANT circuit breaker to activate
+      },
+    };
+
+    export default function () {
+      const scenario = __ENV.scenario || 'normal';
+      const baseUrl = 'http://release2-flask-client.default.svc.cluster.local:8001';
+      
+      let url = `${baseUrl}/echo`;
+      let shouldTriggerFailure = false;
+      
+      // Force failures by hitting the test failure endpoint
+      if (__ITER > 30 && __ITER < 120) {
+        // During failure test phase, randomly cause server errors
+        if (Math.random() < 0.7) { // 70% chance of hitting failure endpoint
+          url = `${baseUrl}/test-failure`; // This will always fail and trigger CB
+          shouldTriggerFailure = true;
+        }
+      }
+      
+      const message = shouldTriggerFailure ? 
+        'This request should fail to trigger circuit breaker' : 
+        'Normal test message';
+        
+      const payload = JSON.stringify({ message: message });
+      const params = { 
+        headers: { 'Content-Type': 'application/json' },
+        timeout: '3s' 
+      };
+
+      const startTime = new Date().getTime();
+      const res = http.post(url, payload, params);
+      const endTime = new Date().getTime();
+      
+      responseTime.add(endTime - startTime);
+
+      // Detailed logging based on response
+      if (res.status === 200) {
+        const responseData = JSON.parse(res.body);
+        check(res, {
+          'successful echo response': (r) => responseData.message && responseData.message.includes('Echo:'),
+          'has timestamp': (r) => responseData.timestamp && typeof responseData.timestamp === 'number',
+        });
+        successRate.add(1);
+        console.log(`✅ SUCCESS [${__ITER}]: Normal response received`);
+        
+      } else if (res.status === 503) {
+        // Circuit breaker is likely open
+        const errorData = JSON.parse(res.body);
+        if (errorData.error && (errorData.error.includes('circuit breaker') || errorData.error.includes('open state'))) {
+          circuitBreakerErrors.add(1);
+          console.log(`🔴 CIRCUIT BREAKER OPEN [${__ITER}]: ${errorData.error}`);
+        } else {
+          console.log(`⚠️  503 ERROR [${__ITER}]: ${errorData.error}`);
+        }
+        successRate.add(0);
+        
+      } else if (res.status === 404) {
+        // Expected failure to trigger circuit breaker
+        serverErrors.add(1);
+        console.log(`💥 FORCED FAILURE [${__ITER}]: 404 - Triggering circuit breaker`);
+        successRate.add(0);
+        
+      } else {
+        // Other errors
+        console.log(`❌ UNEXPECTED ERROR [${__ITER}]: Status ${res.status} - ${res.body}`);
+        successRate.add(0);
+      }
+
+      // Basic checks for all responses
+      check(res, {
+        'response received': (r) => r.status !== 0,
+        'response has body': (r) => r.body && r.body.length > 0,
+      });
+
+      // Shorter sleep to increase request rate and trigger circuit breaker faster
+      sleep(Math.random() * 0.5 + 0.2); // 0.2-0.7 seconds
+    }
+
+    export function setup() {
+      console.log('🚀 Starting Circuit Breaker Failure Test');
+      console.log('📋 Test Plan:');
+      console.log('  Phase 1 (0-30s): Normal /echo requests - all should succeed');
+      console.log('  Phase 2 (30-75s): Mix of /echo and /test-failure - trigger circuit breaker');
+      console.log('  Phase 3 (75-135s): Test circuit breaker open state on both endpoints');
+      console.log('  Phase 4 (135-180s): Test recovery');
+      console.log('');
+      console.log('🔍 Watch for:');
+      console.log('  ✅ SUCCESS: Normal 200 responses from /echo');
+      console.log('  💥 FORCED FAILURE: Simulated backend failures from /test-failure');
+      console.log('  🔴 CIRCUIT BREAKER OPEN: 503 with circuit breaker message');
+      console.log('  📈 After 3 failures: CB should open and block ALL requests');
+      console.log('');
+      return {};
+    }
+
+    export function teardown(data) {
+      console.log('');
+      console.log('🎯 Circuit Breaker Test Results:');
+      console.log('📊 Key Metrics:');
+      console.log('  - circuit_breaker_errors: Should be > 0 (CB activated)');
+      console.log('  - server_errors: Forced failures to trigger CB');
+      console.log('  - success_rate: Expected to be low due to CB testing');
+      console.log('');
+      console.log('✅ If you see "CIRCUIT BREAKER OPEN" messages, the CB is working!');
+      console.log('🔍 Check your proxy server logs for CB state transitions:');
+      console.log('  - "[CB] State: CLOSED → OPEN"');
+      console.log('  - "[CB] State: OPEN → HALF_OPEN"');
+      console.log('  - "[CB] State: HALF_OPEN → CLOSED"');
+    }

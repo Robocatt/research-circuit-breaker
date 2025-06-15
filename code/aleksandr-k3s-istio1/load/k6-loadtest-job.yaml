@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: k6-loadtest
+spec:
+  template:
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: load
+                operator: In
+                values:
+                - "true"
+      restartPolicy: Never
+      containers:
+      - name: k6
+        image: loadimpact/k6:latest
+        command: ["k6", "run", "/scripts/loadtest.js"]
+        volumeMounts:
+        - name: k6-script-volume
+          mountPath: /scripts
+      volumes:
+      - name: k6-script-volume
+        configMap:
+          name: k6-script
+  backoffLimit: 1

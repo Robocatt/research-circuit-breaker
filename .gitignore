@@ -22,3 +22,11 @@
 *.xdv
 .idea
 \#*\#
+
+/code/aleksandr-k3s-istio1/plots/*/*.txt
+/code/aleksandr-k3s-istio2/load
+/code/aleksandr-k3s-istio2/old-data
+/code/aleksandr-k3s-istio2/parse
+
+/code/*/venv
+/code/*/istio-1.24.3

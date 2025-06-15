@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.otelCollector.name }}-deployment
+  labels:
+    app: otel-collector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: otel-collector
+  template:
+    metadata:
+      labels:
+        app: otel-collector
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: load
+                    operator: In
+                    values:
+                      - "true"
+      securityContext:
+        fsGroup: 0
+        runAsUser: 0
+      containers:
+      - name: otel-collector
+        image: "{{ .Values.otelCollector.image.repository }}:{{ .Values.otelCollector.image.tag }}"
+        imagePullPolicy: {{ .Values.otelCollector.image.pullPolicy }}
+        args: {{ toJson .Values.otelCollector.args }}
+        ports:
+        - name: otlp
+          containerPort: {{ .Values.otelCollector.service.targetPort }}
+        volumeMounts:
+        - name: collector-config
+          mountPath: /etc/otel-collector-config.yaml
+          subPath: collector.yaml
+          readOnly: true
+        - name: traces
+          mountPath: {{ .Values.otelCollector.volume.mountPath }}
+      volumes:
+      - name: collector-config
+        configMap:
+          name: {{ .Values.otelCollector.config.name }}-config
+      - name: traces
+        hostPath:
+          path: {{ .Values.otelCollector.volume.hostPath }}
+          type: DirectoryOrCreate

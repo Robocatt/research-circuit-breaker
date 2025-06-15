@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: k6-script
+data:
+  loadtest.json: |
+    import http from 'k6/http';
+    import { check, sleep } from 'k6';
+
+    export const options = {
+      stages: [
+        { duration: '0.5m', target: 10 }, // ramp-up
+        { duration: '2m', target: 10 }, // sustain
+        { duration: '0.5m', target: 0 },  // ramp-down
+      ],
+      thresholds: {
+        http_req_failed: ['rate<0.01'],
+        http_req_duration: ['p(95)<500'],  // adjust if you expect higher latency
+      },
+    };
+
+    const BASE_URL = 'http://release2-flask-client.default.svc.cluster.local:8001/echo';
+    const TEST_ID  = '10vus';  
+
+    export default function () {
+      const params = {
+        headers: {
+          'Content-Type': 'application/json',
+          // OpenTelemetry baggage для передачи тега в трейсы
+          'baggage': `test_id=${TEST_ID}`,
+          // Альтернативные способы передачи тега
+          'x-test-id': TEST_ID,
+          'x-trace-tag': TEST_ID,
+        },
+        timeout: '3s',
+        tags: {
+          // K6 теги для группировки метрик
+          test_id: TEST_ID,
+          test_type: 'load_test',
+          scenario: '10_users'
+        }
+      };
+      
+      const res = http.post(
+        BASE_URL,
+        JSON.stringify({ 
+          message: 'Latency test',
+          test_id: TEST_ID // Также передаем в теле запроса
+        }),
+        params,
+      );
+      
+      check(res, { 
+        'status 200': (r) => r.status === 200,
+        'test_id in response': (r) => {
+          try {
+            const body = JSON.parse(r.body);
+            return body.test_id === TEST_ID;
+          } catch (e) {
+            return false;
+          }
+        }
+      });
+      
+      sleep(Math.random() * 0.5);
+    }

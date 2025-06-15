@@ -1,0 +1,47 @@
+{{- $releaseName := .Release.Name -}}
+
+{{- $deployments := dict "server" .Values.server "client" .Values.client }}
+
+{{- range $key, $val := $deployments }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $releaseName }}-flask-{{ $key }}-istio
+  labels:
+    app: flask-{{ $key }}-istio
+spec:
+  replicas: {{ $val.replicaCount }}
+  selector:
+    matchLabels:
+      app: flask-{{ $key }}-istio
+  template:
+    metadata:
+      labels:
+        app: flask-{{ $key }}-istio
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+      - name: flask-{{ $key }}-istio
+        image: "{{ $val.image.repository }}:{{ $val.image.tag }}"
+        imagePullPolicy: {{ $val.image.pullPolicy }}
+        ports:
+        - containerPort: {{ $val.service.port }}
+        env:
+        - name: OTLP_COLLECTOR_ENDPOINT
+          value: {{ quote $val.env.otlpCollectorEndpoint }}
+        {{- if eq $key "client" }}
+        # Only include the SERVER_SERVICE env variable for the client deployment.
+        - name: SERVER_SERVICE
+          value: "{{ $releaseName }}-flask-server-istio"
+        {{- end }}
+        resources:
+{{ toYaml $val.resources | indent 10 }}
+      nodeSelector:
+{{ toYaml $val.nodeSelector | indent 8 }}
+      tolerations:
+{{ toYaml $val.tolerations | indent 8 }}
+      affinity:
+{{ toYaml $val.affinity | indent 8 }}
+{{- end }}

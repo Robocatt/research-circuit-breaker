@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fluentd-jaeger
+  namespace: logging
+spec:
+  selector:
+    matchLabels: { app: fluentd-jaeger }
+  replicas: 1
+  template:
+    metadata:
+      labels: { app: fluentd-jaeger }
+    spec:
+      nodeSelector:
+        server: "true" # only NODE 1!
+      containers:
+        - name: fluentd
+          image: fluent/fluentd-kubernetes-daemonset:v1.17-debian-elasticsearch7-1
+          env:
+          - name: FLUENT_ELASTICSEARCH_SED_DISABLE
+            value: "1"
+          # - name: GEM_HOME           # any directory Fluent can write
+          #   value: /fluentd/.gems
+          # command: ["/bin/sh","-c"]
+          # args:
+          #   - |
+          #     gem install --no-document -i "$GEM_HOME" fluent-plugin-parser-cri \
+          #     && exec fluentd -c /fluentd/etc/fluent.conf -v
+            
+          volumeMounts:
+            # - name: gemhome
+            #   mountPath: /fluentd/.gems
+            - name: conf
+              mountPath: /fluentd/etc
+            - name: varlog
+              mountPath: /var/log/containers           # host logs (read-only)
+              readOnly: true
+            - name: varlog-pods    
+              mountPath: /var/log/pods
+              readOnly: true
+            - name: pos
+              mountPath: /fluentd/pos
+      volumes:
+        - name: conf
+          configMap:
+            name: fluentd-config
+            items:
+              - key: fluent.conf
+                path: fluent.conf
+        - name: varlog
+          hostPath:
+            path: /var/log/containers   
+        - name: varlog-pods         # NEW
+          hostPath:
+            path: /var/log/pods
+        # - name: testfile
+        #   configMap:
+        #     name: test-json-configmap-n       # contains test-span.json
+        #     items:
+        #       - key: test-span.json
+        #         path: test-span.json
+        - name: pos
+          emptyDir: {}

@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vector-central
+  labels:
+    app: vector-central
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vector-central
+  template:
+    metadata:
+      labels:
+        app: vector-central
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: load
+                operator: In
+                values:
+                  - "true"
+      containers:
+      - name: vector-central
+        image: timberio/vector:nightly-alpine
+        args: ["--config", "/etc/vector/vector.toml"]
+        ports:
+          - name: vector
+            containerPort: 9001
+        volumeMounts:
+        - name: config
+          mountPath: /etc/vector
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: vector-central-config
+          items:
+            - key: "vector.toml"
+              path: "vector.toml"

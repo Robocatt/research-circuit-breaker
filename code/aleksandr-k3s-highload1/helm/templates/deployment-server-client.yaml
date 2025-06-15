@@ -1,0 +1,47 @@
+{{- /*
+     deployments.yaml – non-Istio variant
+     Renders two Deployments (server / client) that are identical
+     except for the extra SERVER_SERVICE env var on the client.
+*/ -}}
+{{- $rel := .Release.Name -}}
+{{- $apps := dict "server" .Values.server "client" .Values.client }}
+
+{{- range $k, $v := $apps }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $rel }}-flask-{{ $k }}
+  labels:
+    app: flask-{{ $k }}
+spec:
+  replicas: {{ $v.replicaCount }}
+  selector:
+    matchLabels:
+      app: flask-{{ $k }}
+  template:
+    metadata:
+      labels:
+        app: flask-{{ $k }}
+    spec:
+      containers:
+      - name: flask-{{ $k }}
+        image: "{{ $v.image.repository }}:{{ $v.image.tag }}"
+        imagePullPolicy: {{ $v.image.pullPolicy }}
+        ports:
+        - containerPort: {{ $v.service.port }}
+        env:
+        {{- if eq $k "client" }}
+        # Where the client should send requests
+        - name: SERVER_SERVICE
+          value: "{{ $rel }}-flask-server"
+{{- end }}
+        resources:
+{{ toYaml $v.resources | indent 10 }}
+      nodeSelector:
+{{ toYaml $v.nodeSelector | indent 8 }}
+      tolerations:
+{{ toYaml $v.tolerations | indent 8 }}
+      affinity:
+{{ toYaml $v.affinity | indent 8 }}
+{{- end }}

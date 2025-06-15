@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluent-bit-config
+  namespace: logging
+data:
+  # input - parser - filter - buffer - routing - output
+  fluent-bit.conf: |-
+    [SERVICE]
+        Daemon         Off
+        Flush          1
+        Log_Level      info
+        Parsers_File   parsers.conf
+
+    [INPUT]
+        Name           tail
+        Path           /var/log/containers/*.log
+        Parser         cri
+        Tag            kube.*
+        Mem_Buf_Limit  5MB
+        Skip_Long_Lines On
+        Refresh_Interval 5
+
+    # Rewrite Tag Filter:
+    #  1) If the 'log' field contains "resourceSpans", re-tag as "otlp.<original_tag>"
+    #  2) Else if the 'log' field contains "HTTP/1.1", re-tag as "flask.<original_tag>"
+    # Records that match a rule won't keep their original record (false = drop original).
+    # Unmatched records remain "kube.*" with no output configured.
+    
+    [FILTER]
+        Name            rewrite_tag
+        Match           kube.*
+        Rule            $log ^\{.*\"resourceSpans\":.*$ otlp.$TAG false
+        Rule            $log .*HTTP/1\.1.*$ flask.$TAG false
+        Emitter_Name    route_emitter
+
+    # Parser Filter: decode the JSON stored in the "log" field.
+    [FILTER]
+        Name            parser
+        Match           otlp.*
+        Key_Name        log
+        Parser          json
+        Reserve_Data    Off
+
+
+    # Output 1: OTLP logs to stdout
+    [OUTPUT]
+        Name            stdout
+        Match           otlp.*
+        Format          json
+    
+    # Output2: Send OTLP logs to the Jaeger internal OTLP service.
+    [OUTPUT]
+        Name            OpenTelemetry
+        Match           otlp.*
+        Host            jaeger-otlp-service.default.svc.cluster.local
+        Port            4317
+        http2           on
+        grpc            on
+        tls             off
+
+        
+
+    # No output for "flask.*" => these logs won't appear in stdout (or anywhere else).
+    # If you want them in a different destination, define another [OUTPUT] with Match flask.*.
+    #
+    # Also, no [OUTPUT] for the original kube.* => they won't be shown.
+
+  parsers.conf: |-
+    [PARSER]
+        Name         cri
+        Format       regex
+        # Example log:
+        # 2025-03-17T16:19:36.031754877Z stdout F [2025-03-17T16:19:35.351Z] "POST /echo HTTP/1.1" 200 -
+        Regex        ^(?<time>[^ ]+) (?<stream>[^ ]+) [^ ]+ (?<log>.*)$
+        Time_Key     time
+        Time_Format  %Y-%m-%dT%H:%M:%S.%L%z
+        Time_Keep    On
+        
+    [PARSER]
+        Name         json
+        Format       json
+    
+  

@@ -1,0 +1,6 @@
+apiVersion: v2
+name: unified-flask-chart
+description: A single Helm chart that deploys both the Flask client and server.
+type: application
+version: 0.1.0
+appVersion: "1.0"

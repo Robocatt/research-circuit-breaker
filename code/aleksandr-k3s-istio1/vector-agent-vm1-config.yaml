@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vector-agent-config
+data:
+  vector.toml: |-
+    [api]
+    enabled = true
+
+    # [sources.in]
+    # type = "stdin"
+
+    [sources.otel_json]
+    type = "file"
+    include = ["/var/log/otel_spans.json"]
+    read_from = "beginning"
+    max_line_bytes = 302400000
+
+    [sinks.out]
+    inputs = ["otel_json"]
+    type = "console"
+    encoding.codec = "text"
+
+    
+    
+
+    # # Sinks configuration
+    # [sinks.to_vector_central]
+    # type = "vector"
+    # inputs = ["otel_json"]
+    # address = "http://vector-central-service:9001"
+
+
